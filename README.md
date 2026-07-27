@@ -6,6 +6,8 @@
 🎮 **[Live Demo / Oyunu Oyna](https://violetofnight.github.io/seasons-kaplay-mobile-pc-platformer/)**
 
 ---
+![alt text](image.png)
+---
 
 ## 📌 Project Overview
 
@@ -23,6 +25,8 @@
   - `z(500)`: End-level Collages
   - `z(1010)`: Dialogue Panels & Story Elements
 
+---
+![alt text](<Ekran görüntüsü 2026-07-28 012906.png>)
 ---
 
 ## 🚀 Tech Stack
