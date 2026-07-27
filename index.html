@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Mevsimler ve Sen</title>
+  <style>
+    /* Tarayıcının varsayılan boşluklarını sıfırlıyoruz */
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- KAPLAY Oyun Motorunu İnternetten Çağırıyoruz (Ücretsiz CDN) -->
+  <script type="module">
+    import kaplay from "https://unpkg.com/kaplay@3001.0.0-alpha.20/dist/kaplay.mjs";
+
+    kaplay({
+      width: 800,
+      height: 450,
+      letterbox: true,
+      crisp: true,
+      texFilter: "nearest",
+    });
+
+    // 🔊 SES/MÜZİK DOSYALARINI YÜKLEME
+    loadSound("sfx_talk", "assets/sounds/konusma_sesi.mp3"); // Konuşma daktilo sesi
+
+    // Bitiş Ekranı Ses Kaydı
+    loadSound("myVoice", "assets/sounds/ses_kaydi.mp3");
+
+    // 1. Plak toplanmadan önce çalacak olan genel müzik:
+    loadSound("bg_default_music", "assets/sounds/genel_muzik.mp3");
+
+    // 2. Her mevsimin plak toplanınca çalacağı özel müzikler:
+    loadSound("music_summer", "assets/sounds/yaz_sarkisi.mp3");
+    loadSound("music_autumn", "assets/sounds/sonbahar_sarkisi.mp3");
+    loadSound("music_winter", "assets/sounds/kis_sarkisi.mp3");
+    loadSound("music_spring", "assets/sounds/ilkbahar_sarkisi.mp3");
+    loadSound("music_final", "assets/sounds/final_sarkisi.mp3");
+
+    // 🔊 SES EFEKTLERİ (SFX)
+    loadSound("sfx_jump", "assets/sounds/sfx_jump.mp3");
+    loadSound("sfx_walk", "assets/sounds/sfx_walk.mp3");
+    loadSound("sfx_heart", "assets/sounds/sfx_heart.mp3");
+    loadSound("sfx_vinyl", "assets/sounds/sfx_vinyl.mp3");
+    loadSound("sfx_special", "assets/sounds/sfx_special.mp3");
+
+    // GÖRSELLER
+    loadSprite("player_idle", "assets/sprites/karakter_durma.png");
+    loadSprite("player_run", "assets/sprites/karakter_yurume.png", {
+      sliceX: 10,
+      anims: { run: { from: 0, to: 9, speed: 12, loop: true } },
+    });
+    loadSprite("player_jump", "assets/sprites/karakter_ziplama.png", { sliceX: 2 });
+
+    //Final 5. Bölüm
+    loadSprite("bg_final", "assets/sprites/final_arkaplan.png");
+    loadSprite("ground_final", "assets/sprites/final_zemin.png");
+    loadSprite("knight", "assets/sprites/sovalye.png"); // Şövalye görseli
+
+    // 🗣️ Diyalog Balonundaki Yüz Portreleri
+    loadSprite("portrait_player", "assets/sprites/portrait_player.png");
+    loadSprite("portrait_knight", "assets/sprites/portrait_knight.png");
+
+    // Partiküller
+    loadSprite("snow", "assets/sprites/snow.png");
+    loadSprite("leaf", "assets/sprites/leaf.png");
+    loadSprite("sakura", "assets/sprites/sakura.png");
+
+    loadSprite("bg_summer", "assets/sprites/yaz_arkaplan.png");
+    loadSprite("bg_autumn", "assets/sprites/sonbahar_arkaplan.png");
+    loadSprite("bg_winter", "assets/sprites/kis_arkaplan.png");
+    loadSprite("bg_spring", "assets/sprites/ilkbahar_arkaplan.png");
+    
+    // Mevsimlik Zemin Spriteları (Dosya yollarını klasöründeki isimlere göre güncelleyebilirsin)
+    loadSprite("ground_summer", "assets/sprites/yaz_zemin.png");
+    loadSprite("ground_autumn", "assets/sprites/sonbahar_zemin.png");
+    loadSprite("ground_winter", "assets/sprites/kis_zemin.png");
+    loadSprite("ground_spring", "assets/sprites/ilkbahar_zemin.png");
+
+    loadSprite("water", "assets/sprites/su.png"); //su
+
+    loadSprite("empty", "assets/sprites/bos.png");
+    loadSprite("ice", "assets/sprites/buz.png");
+    loadSprite("dirt", "assets/sprites/toprak.png"); // Sadece toprak olan görsel
+    loadSprite("heart", "assets/sprites/kalp.png");
+    loadSprite("vinyl", "assets/sprites/plak.png");
+
+    loadSprite("special_item_summer", "assets/sprites/yaz_nesnesi.png");
+    loadSprite("special_item_autumn", "assets/sprites/sonbahar_nesnesi.png");
+    loadSprite("special_item_winter", "assets/sprites/kis_nesnesi.png");
+    loadSprite("special_item_spring", "assets/sprites/ilkbahar_nesnesi.png");
+
+    // CANVA'DA HAZIRLADIĞIN TEK PARÇA KOLAJ PNG
+    loadSprite("yaz_kolaj", "assets/photos/yaz_kolaj.png");
+    loadSprite("sonbahar_kolaj", "assets/photos/sonbahar_kolaj.png");
+    loadSprite("kis_kolaj", "assets/photos/kis_kolaj.png");
+    loadSprite("ilkbahar_kolaj", "assets/photos/ilkbahar_kolaj.png");
+
+    // 🗺️ BÖLÜM VERİ YAPISI (LEVELS)
+    const LEVELS = [
+      //yaz mevsimi
+      {
+        seasonTitle: "YAZ MEVSİMİ TAMAMLANDI! ☀️",
+        bgSprite: "bg_summer", // Arka plan sprite adı
+        groundSprite: "ground_summer", // ☀️ Yaz zemini
+        specialSprite: "special_item_summer",
+        collageSprite: "yaz_kolaj", // Bu bölümün kolajı
+        music: "music_summer", // 🎵 Plak toplanınca çalacak müzik
+        songName: "Kendisi Yakamoz Güzelim Olur...", // 👈 İstediğin yazıyı yaz
+        map: [
+          "                                                                                                                                                                                                      ",
+          "                                                                                                                                                                                                      ",
+          "                                                                                                                                                                                                     7",
+          "    7                                                                                                                                                                        *                       7",
+          "    7                                                                                                                                                                        ==                      7",
+          "    7           *    *                                                                                                                                            *  ==                              7",
+          "    7         ======    *                                                          *    *                                                                   *    =                                   7",
+          "    7                 ======              o                                  *     ======                     *                                      *      =                    =======        X    7",
+          "    7 *   *                    ======   ======          *             ========                              =====              ======             ======                                      =====  7",
+          "    ========                                          =====                                         ==                                                              ===                              7",
+          "====########==========================================#####=========================================##==============================================================###===============================",
+        ]
+      },
+      
+      //sonbahar
+      {
+        seasonTitle: "SONBAHAR MEVSİMİ TAMAMLANDI! 🍂",
+        bgSprite: "bg_autumn", // Arka plan sprite adı
+        groundSprite: "ground_autumn", // 🍂 Sonbahar zemini
+        specialSprite: "special_item_autumn",
+        collageSprite: "sonbahar_kolaj", // Bu bölümün kolajı
+        music: "music_autumn", // 🎵 Plak toplanınca çalacak müzik
+        songName: "'Bana sonbaharı sevdirdin be adam'", // 👈 İstediğin yazıyı yaz
+        map: [
+          "                                                                                                                              *                                                                       ",
+          "                                                                                                                            ======                                                                    ",
+          "                                                                                                                   ====                                                                              7",
+          "    7                                                                                                                               =     *                                                          7",
+          "    7                                                                                                        ====                        =====                                        ==             7",
+          "    7                *                                  *                                           *                           =                                     ==                             7",
+          "    7         ======    *                            ========                                     ====                          #                =           *     =              *    *             7",
+          "    7                 ======              o      =               =        *        ======                                       #                 *   *      =                    =======       X    7",
+          "    7 *   *                    ======   ======                        ========                             ====                 #                 ======                                      =====  7",
+          "    ========                                             *                                          ====                        #                                   ===                              7",
+          "====########====================================================================================================================#===================================###===============================",
+        ]
+      },
+      
+      //kış
+      {
+        seasonTitle: "KIŞ MEVSİMİ TAMAMLANDI! ❄️",
+        bgSprite: "bg_winter",
+        groundSprite: "ground_winter", // ❄️ Kış zemini (karlı/buzlu)
+        specialSprite: "special_item_winter",
+        collageSprite: "kis_kolaj",
+        music: "music_winter", // 🎵 Plak toplanınca çalacak müzik
+        songName: "Hep çok güzel gülüyor gözlerin bana", // 👈 İstediğin yazıyı yaz
+        map: [
+          "                                                                                                                                                                                                      ",
+          "                                                                                                                                                                                                      ",
+          "                                                                                                                *               *                                                                    7",
+          "    7                                                                                                  *      =====      *     ===                                                                   7",
+          "    7                                                                                                  ==               ===                                           *      ==                      7",
+          "    7                                                                                             =                                   ===                            ==                              7",
+          "    7                                                ========                                 =                                                                  =                  *                7",
+          "    7                                                           ==                 ======                                                   ==    *    *    =                    =======        X    7",
+          "    7 *   *                    ======   ======                        ========                                                                    ======                                      =====  7",
+          "    ========     o         =                                                                                                                                        ===                              7",
+          "====########===============#=============================BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=======BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=====================###============BBBB===============",
+        ]
+      },
+      
+      //ilkbahar
+      {
+        seasonTitle: "İLKBAHAR MEVSİMİ TAMAMLANDI! 🌸",
+        bgSprite: "bg_spring",
+        groundSprite: "ground_spring", // 🌸 İlkbahar zemini (çim/çiçekli)
+        specialSprite: "special_item_spring",
+        collageSprite: "ilkbahar_kolaj",
+        music: "music_spring", // 🎵 Plak toplanınca çalacak müzik
+        songName: "Zarif ve asil, Manolya gibi", // 👈 İstediğin yazıyı yaz
+        map: [
+          "                                                                                                                   * *                                                                               7",
+          "                                                                                                             *     ====                                                                 * X          7",
+          "                                                                                                *          =====         *                                                         *   =====         7",
+          "    7                                                                                           =     *                  ==                                                   *   ==                 7",
+          "    7                                                                                         =       =                     *                                               ===                      7",
+          "    7                                                *      *                               =                               ==                                   *   ===                             7",
+          "    7                   *                            ========                      *   *               ==                          *                            ==                                   7",
+          "    7                 ======        *       *                           *   *      ======                                          ==                       ==                   =======             7",
+          "    7 *   *        =           ==   ==   ======                   =============                                                   =##              ======                                            7",
+          "    ========                           o                                                                     ==                ===###       =                       ===                              7",
+          "====########============================================================WW===================================##================######=======#=====================WW###WW===============WWWWWWWWWWWWW=",
+
+        ]
+      },
+
+      //final
+      {
+        seasonTitle: "FİNAL",
+        bgSprite: "bg_final",
+        groundSprite: "ground_final", // final
+        specialSprite: null, // 👈 Boş olduğunu belirtiyoruz
+        collageSprite: null,  // 👈 Boş olduğunu belirtiyoruz
+        music: "music_final", // 🎵 Plak toplanınca çalacak müzik
+        songName: "Saçları altın bebek...", // 👈 İstediğin yazıyı yaz
+        isFinal: true, // Bunun final bölümü olduğunu koda bildiren özel bir etiket
+        map: [
+          "                                                                                                                                                                                                      ",
+          "                                                                                                            ==                                                                                        ",
+          "                                                                                                                                                                                                     7",
+          "    7                                                              * *                                   =        *                                                                                  7",
+          "    7                                                              ===                             *            ======                                                                               7",
+          "    7           *    *                                *     =      ###   =                        ===       ==          ==              *                                                            7",
+          "    7         ======    *                            =======#      ###           =   *      ===    #                        *          ====                                                          7",
+          "    7                 ======       *      o                        ###=    *       ======          #                       ===                       *     *                     *             K   ===",
+          "    7 *   *                    ======   ======    =                ###========                    =#=                                         ==========   ==        *       *   ==================###",
+          "    ========                                                       ###                          ==###==                              *                              ===    ======#####################",
+          "====########=======================WWWWWWW=========================###========================WW#######WW=======WWWWWWWW=====================WWWWWWWWWWWWWWWWWWW====###====###########################",
+
+        ]
+      }
+    ];
+
+    scene("game", (levelIndex = 0) => {
+      const currentLevel = LEVELS[levelIndex];
+
+      setGravity(1600);
+
+      // 🎶 MÜZİK KONTROL DEĞİŞKENLERİ
+      let currentAudio = play("bg_default_music", { loop: true, volume: 0.3 });
+
+      // Sahneden çıkılırken/bölüm değişirken eski müziği durdurur
+      onSceneLeave(() => {
+        if (currentAudio) currentAudio.stop();
+      });
+
+      // 🌅 YAVAŞ KAYAN ARKA PLAN (PARALAKS)
+      const bg = add([
+        sprite(currentLevel.bgSprite, { width: 2000, height: 450 }), // Biraz geniş tuttuk ki kayarken boşluk kalmasın
+        pos(0, 0),
+        fixed(),
+        z(-100), // En arkada kalması için
+      ]);
+
+      let score = 0;
+      let isFlipped = false;
+      let isPopupOpen = false;
+      let walkSoundTimer = 0;
+
+      const scoreLabel = add([
+        text("Kalpler: 0", { size: 20 }),
+        pos(20, 20),
+        fixed(),
+        color(148, 56, 150),
+        z(100),
+      ]);
+
+      // HARİTA
+      const level = addLevel(currentLevel.map, {
+        tileWidth: 32,
+        tileHeight: 32,
+        pos: vec2(0, 100),
+        tiles: {
+          "=": () => [
+            sprite(currentLevel.groundSprite),
+            scale(0.3333),
+            anchor("topleft"),
+            area(),
+            body({ isStatic: true }),
+            "ground",
+          ],
+          "K": () => [
+            sprite("knight"),
+            scale(2.2),
+            anchor("bot"),
+            pos(16 + 20, 32 + 107),
+            area(),
+            "knight",
+          ],
+          "#": () => [
+            sprite("dirt"), // Düz toprak (alt katmanlar için)
+            scale(0.3333),
+            anchor("topleft"),
+            area(),
+            body({ isStatic: true }),
+            "ground",
+          ],
+          "B": () => [
+            sprite("ice"), // Buz (alt katmanlar için)
+            scale(0.3333),
+            anchor("topleft"),
+            area(),
+            body({ isStatic: true }),
+            "ground",
+          ],
+          "7": () => [
+            sprite("empty"), // boştur abey
+            scale(0.3333),
+            anchor("topleft"),
+            area(),
+            body({ isStatic: true }),
+            "ground",
+          ],
+          "W": () => [
+            sprite("water"),
+            scale(0.3333),
+            anchor("topleft"),
+            area(),
+            "water", // Katı (solid) veya body yapmıyoruz ki oyuncu içine düşebilsin!
+          ],
+          "*": () => [
+            sprite("heart"),
+            scale(0.3333),
+            anchor("center"),
+            pos(16, 16),
+            area(),
+            "heart",
+          ],
+          "o": () => [
+            sprite("vinyl"),
+            scale(0.3333),
+            anchor("center"),
+            pos(16, 16),
+            area(),
+            "vinyl",
+          ],
+          "X": () => [
+            sprite(currentLevel.specialSprite),
+            scale(0.4),
+            anchor("bot"),
+            pos(16, 32),
+            area(),
+            "special_item",
+          ],
+        },
+      });
+
+      // 🎬 BİTİŞ EKRANI SAHNESİ
+      scene("ending", () => {
+        // Arka plan siyah
+        add([
+          rect(800, 450),
+          pos(0, 0),
+          color(0, 0, 0),
+          fixed(),
+        ]);
+
+        // Yavaşça beliren duygusal metin
+        const endText = add([
+          text("Birlikte geçtiğimiz tüm mevsimler, yıllar gibi;\nSeninle olan her anım çok özel...\n\nİyi ki varsın Bal Böceğim.", {
+            size: 22,
+            align: "center",
+            lineSpacing: 12
+          }),
+          pos(400, 150),
+          anchor("center"),
+            color(215, 141, 217),
+          opacity(0), // Başlangıçta şeffaf
+          fixed(),
+        ]);
+
+        // Yavaşça görünür olma (Fade In)
+        tween(0, 1, 2, (val) => endText.opacity = val, easings.easeOutQuad);
+
+        // 🔊 SES KAYDI BUTONU
+        let audioTrack = null;
+        let isPlaying = false;
+
+        const audioBtn = add([
+          rect(240, 45, { radius: 8 }),
+          pos(400, 280),
+          anchor("center"),
+          color(255, 255, 255),
+          area(),
+          fixed(),
+        ]);
+
+        const audioBtnText = add([
+          text("▶  SES KAYDINI DİNLE", { size: 15 }),
+          pos(400, 280),
+          anchor("center"),
+          color(20, 20, 20),
+          fixed(),
+        ]);
+
+        audioBtn.onClick(() => {
+          if (!isPlaying) {
+            // iOS uyumlu ses başlatma
+            audioTrack = play("myVoice");
+            isPlaying = true;
+            audioBtnText.text = "⏸  SESİ DURDUR";
+            audioBtn.color = rgb(220, 220, 220);
+          } else {
+            if (audioTrack) audioTrack.paused = true;
+            isPlaying = false;
+            audioBtnText.text = "▶  SES KAYDINI DİNLE";
+            audioBtn.color = rgb(255, 255, 255);
+          }
+        });
+
+        // 🔗 DIŞ BAĞLANTI (LİNK) BUTONU
+        const linkBtn = add([
+          rect(240, 40, { radius: 8 }),
+          pos(400, 345),
+          anchor("center"),
+          color(80, 160, 255),
+          area(),
+          fixed(),
+        ]);
+
+        add([
+          text("🔗 SANA BİR SÜRPRİZİM VAR", { size: 14 }),
+          pos(400, 345),
+          anchor("center"),
+          color(255, 255, 255),
+          fixed(),
+        ]);
+
+        linkBtn.onClick(() => {
+          // Yönlendirmek istediğiniz adresi buraya yazın:
+          window.open("https://canva.link/v6j24swypzm4x92", "_blank");
+        });
+      });
+
+      // ❄️ 🍂 🌸 MEVSİM PARTİKÜL SİSTEMİ
+      function setupWeather(level) {
+        // Mevsime göre partikül seçimi
+        // levelIndex: 1 -> Sonbahar, 2 -> Kış, 3 -> İlkbahar (Bölüm sıranıza göre değiştirebilirsiniz)
+        let particleType = null;
+
+        if (level === 1) particleType = "fall";      // Sonbahar (Yağmur + Yaprak)
+        else if (level === 2) particleType = "winter"; // Kış (Kar)
+        else if (level === 3) particleType = "spring"; // İlkbahar (Sakura)
+
+        if (!particleType) return;
+
+        // Performans için maksimum 18 nesne sınırı (Object Pooling mantığı)
+        const MAX_PARTICLES = 18;
+
+        for (let i = 0; i < MAX_PARTICLES; i++) {
+          let pSprite = "snow";
+          let pSpeed = rand(40, 90);
+          let pDrift = rand(-20, 20);
+
+          if (particleType === "fall") {
+            pSprite = "leaf";
+            pSpeed = rand(60, 110);
+            pDrift = rand(-15, 15);
+          } else if (particleType === "spring") {
+            pSprite = "sakura";
+            pSpeed = rand(30, 70);
+            pDrift = rand(-30, 30);
+          }
+
+          const p = add([
+            sprite(pSprite),
+            pos(rand(0, 800), rand(-450, 0)),
+            opacity(rand(0.6, 0.95)),
+            fixed(), // Kamera hareketinden etkilenmez, ekranda süzülür
+            z(150),
+            "weather_particle"
+          ]);
+
+          // Her karede aşağı kaydırma ve ekrandan çıkınca yukarı taşıma
+          p.onUpdate(() => {
+            p.move(pDrift, pSpeed);
+            if (p.pos.y > 460) {
+              p.pos.y = rand(-50, -10);
+              p.pos.x = rand(0, 800);
+            }
+          });
+        }
+
+        // Sonbahar için ek olarak hafif yağmur çizgileri
+        if (particleType === "fall") {
+          for (let j = 0; j < 12; j++) {
+            const drop = add([
+              rect(1, rand(8, 15)),
+              pos(rand(0, 800), rand(-450, 0)),
+              color(180, 210, 255),
+              opacity(0.4),
+              fixed(),
+              z(149)
+            ]);
+
+            drop.onUpdate(() => {
+              drop.move(10, rand(180, 250));
+              if (drop.pos.y > 460) {
+                drop.pos.y = rand(-40, -10);
+                drop.pos.x = rand(0, 800);
+              }
+            });
+          }
+        }
+      }
+
+      // Fonksiyonu çağırarak o anki bölüme göre efekti başlatıyoruz:
+      setupWeather(levelIndex);
+
+      // 🏆 KARAKTER
+      const player = add([
+        sprite("player_idle"),
+        pos(100, 150),
+        scale(2),
+        anchor("topleft"),
+        area({
+          shape: new Rect(
+            vec2(54, 49),
+            20, 30
+          ),
+        }),
+        body(),
+        z(10),
+      ]);
+
+      // 🎥 KAMERA VE ARKA PLAN KAYDIRMA MANTIĞI
+      player.onUpdate(() => {
+        if (isPopupOpen) return;
+        // Kamera takibi
+        camPos(Math.round(player.pos.x + 100), 225);
+
+        // Arka planı karakterin hareket hızının %15'i oranında yavaşça ters yöne kaydırır
+        bg.pos.x = -player.pos.x * 0.15;
+      });
+
+      // HAREKET MANTIĞI VE SESİ
+      const SPEED = 250;
+      const JUMP_FORCE = 750;
+
+      function updateDirection(facingLeft) {
+        isFlipped = facingLeft;
+        player.flipX = isFlipped;
+      }
+
+      function playWalkSound() {
+        // Yürüme sesini her 0.3 saniyede bir ritmik olarak çalar
+        if (player.isGrounded() && time() > walkSoundTimer) {
+          play("sfx_walk", { volume: 0.2 });
+          walkSoundTimer = time() + 0.3;
+        }
+      }
+
+      function moveLeft() {
+        if (isPopupOpen) return;
+        player.move(-SPEED, 0);
+        updateDirection(true);
+        playWalkSound();
+        if (player.isGrounded() && player.curAnim() !== "run") {
+          player.use(sprite("player_run"));
+          player.play("run");
+          player.flipX = isFlipped;
+        }
+      }
+
+      function moveRight() {
+        if (isPopupOpen) return;
+        player.move(SPEED, 0);
+        updateDirection(false);
+        playWalkSound();
+        if (player.isGrounded() && player.curAnim() !== "run") {
+          player.use(sprite("player_run"));
+          player.play("run");
+          player.flipX = isFlipped;
+        }
+      }
+
+      function jump() {
+        if (isPopupOpen) return;
+        if (player.isGrounded()) {
+          player.jump(JUMP_FORCE);
+          play("sfx_jump", { volume: 0.2 }); // 🔊 Zıplama Sesi
+        }
+      }
+
+      function stopMove() {
+        if (player.isGrounded()) {
+          player.use(sprite("player_idle"));
+          player.flipX = isFlipped;
+        }
+      }
+
+      player.onUpdate(() => {
+        player.flipX = isFlipped;
+        if (!player.isGrounded()) {
+          player.use(sprite("player_jump"));
+          player.flipX = isFlipped;
+          player.frame = player.vel.y < 0 ? 0 : 1;
+        }
+      });
+
+      player.onGround(() => {
+        player.use(sprite("player_idle"));
+        player.flipX = isFlipped;
+      });
+
+      // ETKİLEŞİMLER
+      player.onCollide("heart", (heart) => {
+        destroy(heart);
+        score++;
+        scoreLabel.text = "Kalpler: " + score;
+        play("sfx_heart", { volume: 0.3 }); // 🔊 Kalp Alma Sesi
+      });
+
+      // 🌊 SUYA DÜŞME EFEKTİ VE YENİDEN BAŞLATMA
+      player.onCollide("water", () => {
+        if (isPopupOpen) return;
+        isPopupOpen = true; // Hareketi durdur
+
+        // Karakteri gizle ve ekranı biraz karart
+        player.hidden = true;
+
+        add([
+          rect(800, 450),
+          pos(0, 0),
+          color(0, 0, 0),
+          opacity(0.7),
+          fixed(),
+          z(200),
+        ]);
+
+        // "TEKRAR DENE" Yazısı
+        add([
+          text("SUYA DÜŞTÜN!\nTekrar Dene", { size: 28, align: "center" }),
+          pos(400, 200),
+          anchor("center"),
+          color(255, 80, 80),
+          fixed(),
+          z(201),
+        ]);
+
+        // 1.5 saniye sonra bulunulan bölümü yeniden başlat
+        wait(1.5, () => {
+          go("game", levelIndex); // O anki levelIndex neyse ona tekrar gider
+        });
+      });
+
+// 💿 PLAK TOPLAMA MANTIĞI
+      player.onCollide("vinyl", (vinyl) => {
+        destroy(vinyl);
+        play("sfx_vinyl", { volume: 0.6 }); // 🔊 Plak Alma Efekt Sesi
+
+        // 1. Mevcut genel müziği durdur
+        if (currentAudio) {
+          currentAudio.stop();
+          currentAudio = null;
+        }
+
+        // 2. Sol Üstte Dönüş Yapan Plak UI Görselini Ekle
+        const hudVinyl = add([
+          sprite("vinyl"),
+          pos(30, 60), // Kalp yazısının hemen altına yerleşir
+          scale(0.4),
+          anchor("center"),
+          rotate(0),
+          fixed(),
+          z(100),
+        ]);
+
+        // Plağın sürekli kendi etrafında dönmesini sağlayan döngü
+        hudVinyl.onUpdate(() => {
+          hudVinyl.angle += 120 * dt(); // Dönüş hızı
+        });
+
+        // ⬛ %25 Opaklıklı Arkaplan Paneli (Yazı uzadıkça büyüyecek)
+        const textBg = add([
+          rect(0, 24, { radius: 0 }), // Yükseklik 24px, oval köşeler
+          pos(50, 48), // Plağın hemen sağı
+          color(250, 152, 245),
+          opacity(0.25), // %25 Opaklık
+          fixed(),
+          z(99), // Yazının (z:100) arkasında kalır
+        ]);
+
+        // 📝 DAKTİLO EFEKTİ İLE ŞARKI YAZISI
+        const recordText = add([
+          text("", { size: 16 }),
+          pos(52, 53), // Arkaplan kutusunun içi
+          fixed(),
+          color(255, 255, 255),
+          z(100),
+        ]);
+
+        // Mevcut bölümden gelen şarkı ismi
+        const fullText = currentLevel.songName || "Çalan Şarkı...";
+        let charIndex = 0;
+
+        // Harf harf daktilo gibi yazdırır ve arkaplanı büyütür
+        const typewriter = loop(0.08, () => {
+          if (charIndex < fullText.length) {
+            recordText.text += fullText[charIndex];
+            
+            // Arkaplan kutusunu yazının uzunluğuna göre dinamik genişletir
+            textBg.width = (recordText.text.length * 8.5) + 14;
+
+            charIndex++;
+          } else {
+            typewriter.cancel(); // Yazı bittiğinde döngüyü durdur
+          }
+        });
+
+        // 3. Tam 2 saniye SESSİZLİK bekle, ardından özel şarkıyı yavaşça yükselterek başlat (Fade-in)
+        wait(2, () => {
+          // Şarkıyı 0 ses seviyesi ile başlatıyoruz
+          currentAudio = play(currentLevel.music, { loop: true, volume: 0 });
+
+          // Sesi 0'dan 0.5 seviyesine 3 saniyede yumuşakça çıkar
+          tween(0, 0.5, 3, (v) => {
+            if (currentAudio) currentAudio.volume = v;
+          }, easings.linear);
+        });
+      });
+
+      // 🤺 ŞÖVALYE İLE ETKİLEŞİM VE DİYALOG MANTIĞI (TAMAMEN DÜZELTİLDİ)
+      player.onCollide("knight", (knight) => {
+        if (isPopupOpen) return;
+        isPopupOpen = true;
+
+        // 1. Karakterlerin birbirine bakması
+        player.use(sprite("player_idle"));
+        player.flipX = false;
+        knight.flipX = true;
+
+        const offsetX = 50;
+        const offsetY = 60;
+
+        // 2. Kamera Yakınlaşması
+        const targetCamPos = vec2(
+          ((player.pos.x + knight.pos.x) / 2) + offsetX,
+          220 + offsetY
+        );
+        tween(camPos(), targetCamPos, 1.5, (p) => camPos(p), easings.easeOutQuad);
+        tween(camScale().x, 1.8, 1.5, (s) => camScale(vec2(s)), easings.easeOutQuad);
+
+        // 3. Konuşulacak Diyalog Listesi
+        const dialogs = [
+          { speaker: "player", portrait: "portrait_player", text: "Karakter: Sonunda sana yetişebildim. Neden burada buluştuk?" },
+          { speaker: "knight", portrait: "portrait_knight", text: "Şovalye: Bugünü unuttun mu yoksa?" },
+          { speaker: "player", portrait: "portrait_player", text: "Karakter: Yine saçmalıyorsun dimi?" },
+          { speaker: "knight", portrait: "portrait_knight", text: "Şovalye: Ciddiyim, sanırım gerçekten unuttun?" },
+          { speaker: "player", portrait: "portrait_player", text: "Karakter: Ne vardı ki bugün?" },
+          { speaker: "knight", portrait: "portrait_knight", text: "Şovalye: Benim için çok özel bir gün." },
+          { speaker: "player", portrait: "portrait_player", text: "Karakter: Nasıl yani?" },
+          { speaker: "knight", portrait: "portrait_knight", text: "Şovalye: Gel anlatayım..." }
+        ];
+
+        let currentDialogIndex = 0;
+        let isTyping = false;
+        let currentInterval = null;
+
+        // Kutuyu Ekranın Altına Koyalım
+        const dialogBox = add([
+          rect(760, 100, { radius: 10 }),
+          pos(400, 380),
+          anchor("center"),
+          color(0, 0, 0),
+          opacity(0.85),
+          outline(3, rgb(255, 255, 255)),
+          fixed(),
+          z(1010)
+        ]);
+
+        const portrait = add([
+          sprite("portrait_player"),
+          pos(60, 380),
+          anchor("center"),
+          scale(1.4),
+          fixed(),
+          z(1015)
+        ]);
+
+        const dialogText = add([
+          text("", { size: 16, width: 580, lineSpacing: 6 }),
+          pos(120, 345),
+          fixed(),
+          z(1015)
+        ]);
+
+        // Tıklama olayını yönetebilmek için değişken tanımlıyoruz
+        let clickEvt = null;
+
+        function showNextDialog() {
+          // Diyaloglar Bitti mi?
+          if (currentDialogIndex >= dialogs.length) {
+            if (clickEvt) clickEvt.cancel(); // Tıklama dinleyicisini tamamen kapat
+
+            add([
+              rect(800, 450),
+              pos(0, 0),
+              color(0, 0, 0),
+              opacity(0),
+              fixed(),
+              z(1010)
+            ]).onUpdate(function() {
+              this.opacity += dt() * 0.8;
+              if (this.opacity >= 1) {
+                go("ending");
+              }
+            });
+
+            return; // 🛑 KRİTİK DÜZELTME: Diyalog bitti, kodun devamını çalıştırmadan çık!
+          }
+
+          const currentData = dialogs[currentDialogIndex];
+          portrait.use(sprite(currentData.portrait));
+
+          if (currentData.speaker === "player") {
+            portrait.pos = vec2(60, 380);
+            dialogText.pos = vec2(120, 345);
+          } else {
+            portrait.pos = vec2(740, 380);
+            dialogText.pos = vec2(50, 345);
+          }
+
+          dialogText.text = "";
+          let charIndex = 0;
+          isTyping = true;
+
+          if (currentInterval) clearInterval(currentInterval);
+
+          currentInterval = setInterval(() => {
+            if (charIndex < currentData.text.length) {
+              dialogText.text += currentData.text[charIndex];
+              play("sfx_talk", { volume: 0.2, speed: 1.2 });
+              charIndex++;
+            } else {
+              clearInterval(currentInterval);
+              isTyping = false;
+            }
+          }, 40);
+        }
+
+        // İlk diyaloğu başlat
+        showNextDialog();
+
+        // Ekrana tıklandığında ne olacağını yönet
+        clickEvt = onMousePress(() => {
+          if (isTyping) {
+            // Eğer hala yazı yazılıyorsa ilk tıklamada yazının HEPSİNİ anında göster
+            clearInterval(currentInterval);
+            dialogText.text = dialogs[currentDialogIndex].text;
+            isTyping = false;
+          } else {
+            // Yazı zaten bittiyse sonraki diyaloğa geç
+            currentDialogIndex++;
+            showNextDialog();
+          }
+        });
+      });
+
+      // BÖLÜM SONU ÖZEL EŞYA İLE ETKİLEŞİM & GALERİ
+      player.onCollide("special_item", (item) => {
+        destroy(item);
+        isPopupOpen = true;
+        play("sfx_special", { volume: 0.7 }); // 🔊 Özel Eşya / Bölüm Sonu Sesi
+
+        // 1. Arka Plan Karartma Overlay
+        add([
+          rect(800, 450),
+          pos(0, 0),
+          color(0, 0, 0),
+          opacity(0.8),
+          fixed(),
+          z(200),
+        ]);
+
+        const cx = 400;
+        const cy = 225;
+
+        // 2. Canva'da Hazırladığın Şeffaf Kolaj Görseli
+        add([
+          sprite(currentLevel.collageSprite),
+          pos(cx, cy),
+          anchor("center"),
+          fixed(),
+          z(1005),
+        ]);
+
+        // 3. Ortadaki Pixel Art Özel Eşya Görseli
+        add([
+          sprite(currentLevel.specialSprite),
+          pos(cx, cy - 25),
+          scale(1.2),
+          anchor("center"),
+          fixed(),
+          z(202),
+        ]);
+
+        // 4. Mevsim Tamamlandı Yazısı
+        add([
+          text(currentLevel.seasonTitle, { size: 20 }),
+          pos(cx, 325),
+          anchor("center"),
+          color(255, 220, 100),
+          fixed(),
+          z(202),
+        ]);
+
+        // 5. Devam Et Butonu
+        const btnNext = add([
+          rect(160, 40, { radius: 8 }),
+          pos(cx, 385),
+          anchor("center"),
+          color(255, 255, 255),
+          area(),
+          fixed(),
+          z(203),
+        ]);
+
+        add([
+          text("DEVAM ET ➔", { size: 16 }),
+          pos(cx, 385),
+          anchor("center"),
+          color(0, 0, 0),
+          fixed(),
+          z(204),
+        ]);
+
+        btnNext.onClick(() => {
+          if (levelIndex + 1 < LEVELS.length) {
+            go("game", levelIndex + 1);
+          } else {
+            alert("Tebrikler! Sonraki Sezona Geçiliyor...");
+          }
+        });
+      });
+
+      // ==========================================
+      // 📱 VE 💻 %100 DONMASIZ MULTI-TOUCH SİSTEMİ
+      // ==========================================
+
+      // 1. KLAVYE KONTROLLERİ (PC)
+      onKeyDown("left", moveLeft);
+      onKeyDown("right", moveRight);
+      onKeyPress("space", jump);
+      onKeyPress("up", jump);
+      onKeyRelease("left", stopMove);
+      onKeyRelease("right", stopMove);
+
+      // 2. DOKUNMATİK BUTONLAR
+      const btnLeft = add([
+        circle(35),
+        pos(60, 380),
+        color(255, 255, 255),
+        opacity(0.5),
+        fixed(),
+        area(),
+        z(1000),
+      ]);
+      add([text("◄", { size: 24 }), pos(60, 380), anchor("center"), fixed(), z(1001)]);
+
+      const btnRight = add([
+        circle(35),
+        pos(150, 380),
+        color(255, 255, 255),
+        opacity(0.5),
+        fixed(),
+        area(),
+        z(1000),
+      ]);
+      add([text("►", { size: 24 }), pos(150, 380), anchor("center"), fixed(), z(1001)]);
+
+      const btnJump = add([
+        circle(40),
+        pos(720, 375),
+        color(255, 100, 100),
+        opacity(0.6),
+        fixed(),
+        area(),
+        z(1000),
+      ]);
+      add([text("ZIPLA", { size: 14 }), pos(720, 375), anchor("center"), fixed(), z(1001)]);
+
+      // 3. ÇOKLU DOKUNMA (MULTI-TOUCH) LİSTESİ
+      const activeTouches = new Map();
+
+      // Dokunma Başladığında
+      onTouchStart((id, pos) => {
+        activeTouches.set(id, pos);
+        if (btnJump.hasPoint(pos)) {
+          jump();
+        }
+      });
+
+      // Dokunma Hareket Ettiğinde
+      onTouchMove((id, pos) => {
+        activeTouches.set(id, pos);
+      });
+
+      // Dokunma Bittiğinde
+      onTouchEnd((id) => {
+        activeTouches.delete(id);
+      });
+
+      // 4. HER KAREDE KONTROL VE HAREKET
+      onUpdate(() => {
+        let isMovingLeft = false;
+        let isMovingRight = false;
+
+        // A) PC Fare Tıklaması
+        if (isMouseDown()) {
+          const mpos = mousePos();
+          if (btnLeft.hasPoint(mpos)) isMovingLeft = true;
+          if (btnRight.hasPoint(mpos)) isMovingRight = true;
+        }
+
+        // B) Mobil Multi-Touch Taraması
+        activeTouches.forEach((touchPos) => {
+          if (btnLeft.hasPoint(touchPos)) isMovingLeft = true;
+          if (btnRight.hasPoint(touchPos)) isMovingRight = true;
+        });
+
+        // Hareketi Uygula
+        if (isMovingLeft) {
+          moveLeft();
+        } else if (isMovingRight) {
+          moveRight();
+        } else {
+          if (!isKeyDown("left") && !isKeyDown("right")) {
+            stopMove();
+          }
+        }
+      });
+
+      // PC Tıklamasıyla Zıplama
+      onMousePress(() => {
+        if (btnJump.hasPoint(mousePos())) {
+          jump();
+        }
+      });
+
+    }); // 🛑 Game sahnesi kapanışı
+
+    // 🎮 ANA MENÜ SAHNESİ (Mobil Uyumlu)
+    scene("start", () => {
+      // Arka plan
+      add([
+        sprite("bg_summer", { width: 800, height: 450 }),
+        pos(0, 0),
+        fixed(),
+      ]);
+
+      // Ekranı hafif karartan katman
+      add([
+        rect(800, 450),
+        pos(0, 0),
+        color(0, 0, 0),
+        opacity(0.4),
+        fixed(),
+      ]);
+
+      // Oyun Adı / Başlık
+      add([
+        text("MEVSİMLER VE SEN", { size: 45, align: "center" }),
+        pos(400, 140),
+        anchor("center"),
+        color(255, 230, 100),
+        fixed(),
+      ]);
+
+      // OYNA Buton Kutusu
+      const playBtn = add([
+        rect(180, 50, { radius: 10 }),
+        pos(400, 260),
+        anchor("center"),
+        color(255, 255, 255),
+        area(),
+        fixed(),
+      ]);
+
+      // OYNA Buton Yazısı
+      add([
+        text("OYNA", { size: 22 }),
+        pos(400, 260),
+        anchor("center"),
+        color(0, 0, 0),
+        fixed(),
+      ]);
+
+      // 📱 Mobil (Dokunmatik) Etkileşim:
+      // Hem onClick hem de onClick yerine geçebilen dokunma algılayıcı
+      playBtn.onClick(() => {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        }
+        go("game", 0);
+      });
+    });
+
+    // 🚨 ÇOK ÖNEMLİ: Koddaki tek ve son çalıştırma satırı bu olmalı!
+    go("start");
+
+  </script>
+</body>
+</html>
